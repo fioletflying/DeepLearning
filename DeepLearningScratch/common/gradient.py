@@ -14,7 +14,7 @@ def _numerical_gradient_1d(f, x):
         fxh2 = f(x) # f(x-h)
         grad[idx] = (fxh1 - fxh2) / (2*h)
         
-        x[idx] = tmp_val 
+        x[idx] = tmp_val # 还原值
         
     return grad
 
@@ -39,14 +39,14 @@ def numerical_gradient(f, x):
     while not it.finished:
         idx = it.multi_index
         tmp_val = x[idx]
-        x[idx] = tmp_val + h
+        x[idx] = float(tmp_val) + h
         fxh1 = f(x) # f(x+h)
         
         x[idx] = tmp_val - h 
         fxh2 = f(x) # f(x-h)
         grad[idx] = (fxh1 - fxh2) / (2*h)
         
-        x[idx] = tmp_val 
+        x[idx] = tmp_val # 还原值
         it.iternext()   
         
     return grad
