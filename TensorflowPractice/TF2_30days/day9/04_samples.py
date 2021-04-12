@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 
 print(tf.__version__)
 
-OUTPUT_DIR = 'output_dir'
+OUTPUT_DIR = r'E:\study\code\github\DeepLearning\TensorflowPractice\TF2_30days\day9\output'
 N_EPOCHS = 500
 
 
@@ -35,19 +35,38 @@ def make_plot(X, y, plot_name, file_name, XX=None, YY=None, preds=None, dark=Fal
     plt.title(plot_name, fontsize=20, fontproperties='SimHei')
     plt.subplots_adjust(left=0.20)
     plt.subplots_adjust(right=0.80)
+    # 绘制等高线图
     if XX is not None and YY is not None and preds is not None:
         plt.contourf(XX, YY, preds.reshape(XX.shape), 25, alpha=0.08, cmap=plt.cm.Spectral)
         plt.contour(XX, YY, preds.reshape(XX.shape), levels=[.5], cmap="Greys", vmin=0, vmax=.6)
     # 绘制散点图，根据标签区分颜色m=markers
     markers = ['o' if i == 1 else 's' for i in y.ravel()]
-    # mscatter(X[:, 0], X[:, 1], c=y.ravel(), s=20, cmap=plt.cm.Spectral, edgecolors='none', m=markers, ax=axes)
+    mscatter(X[:, 0], X[:, 1], c=y.ravel(), s=20, cmap=plt.cm.Spectral, edgecolors='none', m=markers, ax=axes)
     # 保存矢量图
     plt.savefig(output_dir + '/' + file_name)
     plt.close()
 
+def mscatter(x, y, ax=None, m=None, **kw):
+    import matplotlib.markers as mmarkers
+    if not ax: ax = plt.gca()
+    sc = ax.scatter(x, y, **kw)
+    if (m is not None) and (len(m) == len(x)):
+        paths = []
+        for marker in m:
+            if isinstance(marker, mmarkers.MarkerStyle):
+                marker_obj = marker
+            else:
+                marker_obj = mmarkers.MarkerStyle(marker)
+            path = marker_obj.get_path().transformed(
+                marker_obj.get_transform())
+            paths.append(path)
+        sc.set_paths(paths)
+    return sc
+
 
 def network_layer_influence(X_train,y_train):
 
+    # 创建5种不同的层数的网络
     for n in range(5):
         model = Sequential()
 
@@ -56,8 +75,8 @@ def network_layer_influence(X_train,y_train):
         for _ in range(n):
             model.add(layers.Dense(32,activation='relu'))
         
-        model.add(layers.Dense(1,activations='sigmoid'))
-
+        model.add(layers.Dense(1,activation='sigmoid'))
+        model.summary()
         model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
         model.fit(X_train,y_train,epochs=N_EPOCHS,verbose=1)
 
@@ -71,16 +90,76 @@ def network_layer_influence(X_train,y_train):
         file = "网络容量_%i.png" % (2 + n)
         make_plot(X_train, y_train, title, file, XX, YY, preds, output_dir=OUTPUT_DIR + '/network_layers')
 
+def build_model_with_regularization(_lambda):
+    model = Sequential()
+
+    model.add(layers.Dense(8,input_dim=2,activation='relu'))
+
+    model.add(layers.Dense(256,activation='relu',kernel_regularizer=regularizers.l2(_lambda)))
+    model.add(layers.Dense(256,activation='relu',kernel_regularizer=regularizers.l2(_lambda)))
+    model.add(layers.Dense(256,activation='relu',kernel_regularizer=regularizers.l2(_lambda)))
+
+    model.add(layers.Dense(1,activation='sigmoid'))
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])  # 模型装配
+    return model
+
+
+def regularizers_influence(X_train,y_train):
+    
+
+def dropout_influence(X_train,y_train):
+
+    for n in range(5):
+
+        model= Sequential()
+
+        model.add(layers.Dense(8,input_dim=2,activation='relu'))
+        counter = 0
+
+        for _ in range(5):
+            model.add(layers.Dense(64,activation='relu'))
+            # 添加 n 个 Dropout 层
+            if counter < n:
+                counter += 1
+                model.add(layers.Dropout(rate=0.5))
+            # model.add(layers.Dropout(rate=0.5))
+
+                # 输出层
+        model.add(layers.Dense(1, activation='sigmoid'))
+        model.summary()
+
+        # 模型装配
+        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        # 训练
+        model.fit(X_train, y_train, epochs=N_EPOCHS, verbose=1)
+        # 绘制不同 Dropout 层数的决策边界曲线
+        # 可视化的 x 坐标范围为[-2, 3]
+        xx = np.arange(-2, 3, 0.01)
+        # 可视化的 y 坐标范围为[-1.5, 2]
+        yy = np.arange(-1.5, 2, 0.01)
+        # 生成 x-y 平面采样网格点，方便可视化
+        XX, YY = np.meshgrid(xx, yy)
+        preds = model.predict_classes(np.c_[XX.ravel(), YY.ravel()])
+        title = "无Dropout层" if n == 0 else "{0}层 Dropout层".format(n)
+        file = "Dropout_%i.png" % n
+        make_plot(X_train, y_train, title, file, XX, YY, preds, output_dir=OUTPUT_DIR + '/dropout')
+
+
+
+
 
 def main():
     X,y,X_train,X_test,y_train,y_test = load_dataset()
 
     # 绘制数据集分布
-    make_plot(X, y, None, "月牙形状二分类数据集分布.svg")
+    make_plot(X, y, None, "月牙形状二分类数据集分布.png")
 
 
      # 网络层数的影响
-    network_layer_influence(X_train, y_train)
+    # network_layer_influence(X_train, y_train)
+
+    dropout_influence(X_train,y_train)
+    
 
 
 if __name__ == '__main__':
