@@ -103,8 +103,56 @@ def build_model_with_regularization(_lambda):
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])  # 模型装配
     return model
 
+def plot_weights_matrix(model, layer_index, plot_name, file_name, output_dir=OUTPUT_DIR):
+    # 绘制权值范围函数
+    # 提取指定层的权值矩阵
+    weights = model.layers[layer_index].get_weights()[0]
+    shape = weights.shape
+    # 生成和权值矩阵等大小的网格坐标
+    X = np.array(range(shape[1]))
+    Y = np.array(range(shape[0]))
+    X, Y = np.meshgrid(X, Y)
+    # 绘制3D图
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    plt.title(plot_name, fontsize=20, fontproperties='SimHei')
+    # 绘制权值矩阵范围
+    ax.plot_surface(X, Y, weights, cmap=plt.get_cmap('rainbow'), linewidth=0)
+    # 设置坐标轴名
+    ax.set_xlabel('网格x坐标', fontsize=16, rotation=0, fontproperties='SimHei')
+    ax.set_ylabel('网格y坐标', fontsize=16, rotation=0, fontproperties='SimHei')
+    ax.set_zlabel('权值', fontsize=16, rotation=90, fontproperties='SimHei')
+    # 保存矩阵范围图
+    plt.savefig(output_dir + "/" + file_name + ".png")
+    plt.close(fig)
 
 def regularizers_influence(X_train,y_train):
+    for _lambda in [1e-5, 1e-3, 1e-1, 0.12, 0.13]:
+        model = build_model_with_regularization(_lambda)
+
+        model.fit(X_train,y_train,epochs=N_EPOCHS,verbose=1)
+
+        layer_index = 2
+        plot_title = "正则化系数：{}".format(_lambda)
+        file_name = "正则化网络权值_" + str(_lambda)
+        # 绘制网络权值范围图
+        plot_weights_matrix(model, layer_index, plot_title, file_name, output_dir=OUTPUT_DIR + '/regularizers')
+        # 绘制不同正则化系数的决策边界线
+        # 可视化的 x 坐标范围为[-2, 3]
+        xx = np.arange(-2, 3, 0.01)
+        # 可视化的 y 坐标范围为[-1.5, 2]
+        yy = np.arange(-1.5, 2, 0.01)
+        # 生成 x-y 平面采样网格点，方便可视化
+        XX, YY = np.meshgrid(xx, yy)
+        preds = model.predict_classes(np.c_[XX.ravel(), YY.ravel()])
+        title = "正则化系数：{}".format(_lambda)
+        file = "正则化_%g.svg" % _lambda
+        make_plot(X_train, y_train, title, file, XX, YY, preds, output_dir=OUTPUT_DIR + '/regularizers')
+
+
     
 
 def dropout_influence(X_train,y_train):
@@ -158,7 +206,9 @@ def main():
      # 网络层数的影响
     # network_layer_influence(X_train, y_train)
 
-    dropout_influence(X_train,y_train)
+    # dropout_infl  uence(X_train,y_train)
+
+    regularizers_influence(X_train,y_train)
     
 
 
